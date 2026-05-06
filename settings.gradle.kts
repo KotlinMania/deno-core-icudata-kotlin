@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "deno-core-icudata-kotlin"
+
