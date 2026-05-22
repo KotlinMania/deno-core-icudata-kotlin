@@ -302,12 +302,14 @@ kotlin {
 // ICU data into the compiled library at compile time. Kotlin has no
 // compile-time byte-splice macro and the binary is too large to write as a
 // `byteArrayOf(...)` literal, so we mirror the same semantics with a build-time
-// generator: it reads tmp/deno_core_icudata/src/icudtl.dat, splits the bytes
-// into ASCII-base64 chunks (each well under the 65535-byte Kotlin string
-// literal limit), and emits the chunks as a Kotlin source file under the
-// commonMain source set. The hand-written IcuData.kt then assembles the bytes
-// into the public ICU_DATA: ByteArray exposed by this port.
-val icuDataInputFile = layout.projectDirectory.file("tmp/deno_core_icudata/src/icudtl.dat").asFile
+// generator: it reads src/commonMain/data/icudtl.dat (vendored from the
+// upstream crate's src/icudtl.dat — the upstream crate publishes the file
+// inside the crate package itself), splits the bytes into ASCII-base64 chunks
+// (each well under the 65535-byte Kotlin string literal limit), and emits the
+// chunks as a Kotlin source file under the commonMain source set. The
+// hand-written IcuData.kt then assembles the bytes into the public ICU_DATA:
+// ByteArray exposed by this port.
+val icuDataInputFile = layout.projectDirectory.file("src/commonMain/data/icudtl.dat").asFile
 val icuDataGeneratedDir = layout.buildDirectory.dir("generated/icudata/commonMain/kotlin")
 
 val generateIcuData = tasks.register("generateIcuData") {
@@ -319,8 +321,9 @@ val generateIcuData = tasks.register("generateIcuData") {
     doLast {
         if (!icuDataInputFile.exists()) {
             throw GradleException(
-                "Required upstream data file not found: $icuDataInputFile. " +
-                    "Populate tmp/deno_core_icudata/ from the upstream Rust crate before building.",
+                "Required vendored data file not found: $icuDataInputFile. " +
+                    "The file is committed alongside source; restore it from upstream " +
+                    "(deno_core_icudata::src/icudtl.dat) if it has been deleted.",
             )
         }
 
@@ -334,7 +337,7 @@ val generateIcuData = tasks.register("generateIcuData") {
         val base64 = JavaBase64.getEncoder()
 
         val sb = StringBuilder()
-        sb.append("// port-lint: ignore — build-generated base64 chunks for include_bytes!(\"icudtl.dat\")\n")
+        sb.append("// port-lint: ignore — build-generated base64 chunks of src/commonMain/data/icudtl.dat\n")
         sb.append("package io.github.kotlinmania.denocoreicudata\n\n")
         sb.append("internal const val ICU_DATA_TOTAL_BYTES: Int = ${bytes.size}\n\n")
         sb.append("internal val ICU_DATA_CHUNKS: List<String> = listOf(\n")
