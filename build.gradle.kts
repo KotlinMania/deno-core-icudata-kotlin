@@ -2,6 +2,7 @@ import java.io.ByteArrayInputStream
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.Base64 as JavaBase64
 import java.util.zip.ZipInputStream
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.ClasspathNormalizer
@@ -193,6 +194,7 @@ kotlin {
         languageSettings.optIn("kotlin.time.ExperimentalTime")
         languageSettings.optIn("kotlin.concurrent.atomics.ExperimentalAtomicApi")
         languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
+        languageSettings.optIn("kotlin.io.encoding.ExperimentalEncodingApi")
     }
 
     compilerOptions {
@@ -277,6 +279,7 @@ kotlin {
 
     sourceSets {
         val commonMain by getting {
+            kotlin.srcDir(layout.buildDirectory.dir("generated/icudata/commonMain/kotlin"))
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")
@@ -293,6 +296,64 @@ kotlin {
 
     }
     jvmToolchain(21)
+}
+
+// Upstream `src/lib.rs` uses `include_bytes!("icudtl.dat")` to splice the raw
+// ICU data into the compiled library at compile time. Kotlin has no
+// compile-time byte-splice macro and the binary is too large to write as a
+// `byteArrayOf(...)` literal, so we mirror the same semantics with a build-time
+// generator: it reads tmp/deno_core_icudata/src/icudtl.dat, splits the bytes
+// into ASCII-base64 chunks (each well under the 65535-byte Kotlin string
+// literal limit), and emits the chunks as a Kotlin source file under the
+// commonMain source set. The hand-written IcuData.kt then assembles the bytes
+// into the public ICU_DATA: ByteArray exposed by this port.
+val icuDataInputFile = layout.projectDirectory.file("tmp/deno_core_icudata/src/icudtl.dat").asFile
+val icuDataGeneratedDir = layout.buildDirectory.dir("generated/icudata/commonMain/kotlin")
+
+val generateIcuData = tasks.register("generateIcuData") {
+    group = "build"
+    description = "Embed tmp/deno_core_icudata/src/icudtl.dat as base64 chunks in a generated Kotlin source file."
+    inputs.file(icuDataInputFile).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(icuDataGeneratedDir)
+
+    doLast {
+        if (!icuDataInputFile.exists()) {
+            throw GradleException(
+                "Required upstream data file not found: $icuDataInputFile. " +
+                    "Populate tmp/deno_core_icudata/ from the upstream Rust crate before building.",
+            )
+        }
+
+        val rootDir = icuDataGeneratedDir.get().asFile
+        val packageDir = rootDir.resolve("io/github/kotlinmania/denocoreicudata")
+        rootDir.deleteRecursively()
+        packageDir.mkdirs()
+
+        val bytes = icuDataInputFile.readBytes()
+        val chunkSize = 32 * 1024
+        val base64 = JavaBase64.getEncoder()
+
+        val sb = StringBuilder()
+        sb.append("// port-lint: ignore — build-generated base64 chunks for include_bytes!(\"icudtl.dat\")\n")
+        sb.append("package io.github.kotlinmania.denocoreicudata\n\n")
+        sb.append("internal const val ICU_DATA_TOTAL_BYTES: Int = ${bytes.size}\n\n")
+        sb.append("internal val ICU_DATA_CHUNKS: List<String> = listOf(\n")
+        var offset = 0
+        while (offset < bytes.size) {
+            val end = minOf(offset + chunkSize, bytes.size)
+            sb.append("    \"")
+            sb.append(base64.encodeToString(bytes.copyOfRange(offset, end)))
+            sb.append("\",\n")
+            offset = end
+        }
+        sb.append(")\n")
+
+        packageDir.resolve("IcuDataChunks.kt").writeText(sb.toString())
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    dependsOn(generateIcuData)
 }
 
 tasks.withType<AbstractTestTask>().configureEach {
