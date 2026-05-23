@@ -224,9 +224,6 @@ kotlin {
         binaries.framework { baseName = "DenoCoreIcudata"; xcf.add(this) }
     }
 
-    watchosArm32 {
-        binaries.framework { baseName = "DenoCoreIcudata"; xcf.add(this) }
-    }
     watchosArm64 {
         binaries.framework { baseName = "DenoCoreIcudata"; xcf.add(this) }
     }
