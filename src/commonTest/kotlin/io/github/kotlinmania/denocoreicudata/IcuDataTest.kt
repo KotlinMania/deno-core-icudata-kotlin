@@ -21,4 +21,14 @@ class IcuDataTest {
         assertEquals(0xDA.toByte(), ICU_DATA[2])
         assertEquals(0x27.toByte(), ICU_DATA[3])
     }
+
+    @Test
+    fun exposesDefensiveCopies() {
+        val data = ICU_DATA
+        val firstByte = data[0]
+
+        data[0] = 0
+
+        assertEquals(firstByte, ICU_DATA[0])
+    }
 }
