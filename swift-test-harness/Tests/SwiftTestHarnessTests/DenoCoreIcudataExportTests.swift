@@ -1,35 +1,23 @@
 import XCTest
 import DenoCoreIcudata
 
-// Smoke test for the Kotlin → Swift Export → SPM → swift test pipeline.
-//
-// The file's mere existence and successful compilation prove three layers
-// of the pipeline:
-//
-//   1. `embedSwiftExportForXcode` produced `DenoCoreIcudata.swiftmodule/`
-//      and the supporting KotlinRuntimeSupport / ExportedKotlinPackages /
-//      KotlinRuntime swiftmodule bundles. If any of them were missing,
-//      `import DenoCoreIcudata` above would fail at compile time.
-//
-//   2. The static archive `libDenoCoreIcudata.a` (produced by the
-//      `linkSwiftExportBinaryDebugStaticMacosArm64` and
-//      `mergeMacosDebugSwiftExportLibraries` tasks) supplied every
-//      `__root____*` and `KotlinError`-related symbol the Swift modules
-//      reference. If the archive were missing or empty, this test
-//      executable would fail to link with "undefined symbols for
-//      architecture arm64".
-//
-//   3. The Kotlin `swiftExport { moduleName = "DenoCoreIcudata" }` and
-//      `flattenPackage = "io.github.kotlinmania.denocoreicudata"` configuration in
-//      build.gradle.kts produced a module name that's both syntactically
-//      valid as a Swift identifier and reachable from this Package.swift
-//      via the `DenoCoreIcudataLibrary` product.
-//
-// Add more meaningful per-API tests below as the Swift Export surface
-// grows. For now the import + a single passing assertion is the
-// canary that the pipeline is green for this repo.
 final class DenoCoreIcudataExportTests: XCTestCase {
-    func testSwiftModuleLoads() throws {
-        XCTAssertTrue(true, "DenoCoreIcudata swift module imported cleanly")
+    func testIcuDataMatchesCommonTestExpectations() throws {
+        let data = ICU_DATA
+
+        XCTAssertEqual(data.size, 10_822_192)
+        XCTAssertEqual(UInt8(bitPattern: data[0]), 0x90)
+        XCTAssertEqual(UInt8(bitPattern: data[1]), 0x00)
+        XCTAssertEqual(UInt8(bitPattern: data[2]), 0xDA)
+        XCTAssertEqual(UInt8(bitPattern: data[3]), 0x27)
+    }
+
+    func testIcuDataReturnsDefensiveCopies() throws {
+        let data = ICU_DATA
+        let firstByte = data[0]
+
+        data[0] = 0
+
+        XCTAssertEqual(ICU_DATA[0], firstByte)
     }
 }
