@@ -30,7 +30,7 @@ You can find the data file in Rusty V8's `third_party/icu/common/icudtl.dat`
 
 ```kotlin
 dependencies {
-    implementation("io.github.kotlinmania:deno-core-icudata-kotlin:0.1.0")
+    implementation("io.github.kotlinmania:deno-core-icudata-kotlin:0.1.1")
 }
 ```
 
@@ -44,12 +44,17 @@ dependencies {
 ### Targets
 
 - macOS arm64
-- Linux x64
+- Linux x64 / arm64
 - Windows mingw-x64
 - iOS arm64 / simulator-arm64 (Swift export + XCFramework)
+- tvOS arm64 / simulator-arm64
+- watchOS arm32 compile-only, plus arm64 / device-arm64 / simulator-arm64 framework slices
 - JS (browser + Node.js)
 - Wasm-JS (browser + Node.js)
+- Wasm-WASI (Node.js)
 - Android (API 24+)
+- Android Native arm32 / arm64 / x64 / x86
+- JVM
 
 ### Porting guidelines
 
