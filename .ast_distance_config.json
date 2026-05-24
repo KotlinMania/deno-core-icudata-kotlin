@@ -1,6 +1,5 @@
 {
   "type": "port",
-  "parity_mode": false,
   "name": "deno-core-icudata-kotlin",
   "source": {
     "path": "tmp/deno_core_icudata/src",
