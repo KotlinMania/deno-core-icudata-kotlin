@@ -30,7 +30,7 @@ You can find the data file in Rusty V8's `third_party/icu/common/icudtl.dat`
 
 ```kotlin
 dependencies {
-    implementation("io.github.kotlinmania:deno-core-icudata-kotlin:0.1.1")
+    implementation("io.github.kotlinmania:deno-core-icudata-kotlin:0.1.2")
 }
 ```
 
