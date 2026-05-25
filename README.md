@@ -48,7 +48,7 @@ dependencies {
 - Windows mingw-x64
 - iOS arm64 / simulator-arm64 (Swift export + XCFramework)
 - tvOS arm64 / simulator-arm64
-- watchOS arm32 compile-only, plus arm64 / device-arm64 / simulator-arm64 framework slices
+- watchOS arm64 / device-arm64 / simulator-arm64 framework slices
 - JS (browser + Node.js)
 - Wasm-JS (browser + Node.js)
 - Wasm-WASI (Node.js)
