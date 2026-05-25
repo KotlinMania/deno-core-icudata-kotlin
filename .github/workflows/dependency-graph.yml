@@ -1,9 +1,9 @@
 name: "Refresh Dependency Graph"
 
 # Manual-only. Submits a fresh Gradle dependency snapshot to GitHub via the
-# Dependency Submission API. The submitted snapshot supersedes any prior
-# graph entries under the same correlator, which lets Dependabot re-evaluate
-# alerts against the actual current build instead of historical residue.
+# Dependency Submission API. The submitted snapshot supersedes prior graph
+# entries under the same correlator, letting Dependabot re-evaluate alerts
+# against the actual current build instead of historical residue.
 #
 # Why this exists: at some point in this repo's history the dependency graph
 # accumulated transitive entries (netty, bouncycastle, jose4j, jdom2,
@@ -14,8 +14,16 @@ name: "Refresh Dependency Graph"
 # alerts. Running this workflow once replaces the stale snapshot with an
 # accurate one.
 #
-# Trigger: workflow_dispatch only (no push / pull_request / schedule),
-# consistent with the workspace's manual-only CI policy.
+# Trigger: workflow_dispatch only — consistent with the workspace's
+# manual-only CI policy (no push / pull_request / schedule).
+#
+# Action versions match the rest of this repo's workflow surface
+# (actions/checkout@v6, actions/setup-java@v5.2.0,
+# gradle/actions/setup-gradle@v6.1.0) so the KotlinMania allowlist accepts
+# the dispatch. The dependency-graph submission rides on setup-gradle's
+# `dependency-graph: generate-and-submit` parameter — no separate
+# `gradle/actions/dependency-submission` action is needed (and not on the
+# allowlist).
 
 on:
   workflow_dispatch:
@@ -28,18 +36,19 @@ jobs:
     name: "Submit Gradle dependency graph"
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: "Set up JDK 21"
-        uses: actions/setup-java@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5.2.0
         with:
+          distribution: zulu
           java-version: "21"
-          distribution: "zulu"
 
-      - name: "Install project-local Android SDK"
-        run: ./gradlew setupAndroidSdk --no-configuration-cache
-
-      - name: "Submit Gradle dependency snapshot"
-        uses: gradle/actions/dependency-submission@v4
+      - name: Setup Gradle (and arm dependency-graph submission)
+        uses: gradle/actions/setup-gradle@v6.1.0
         with:
           dependency-graph: generate-and-submit
+
+      - name: Resolve dependencies to populate the snapshot
+        run: ./gradlew setupAndroidSdk dependencies --no-configuration-cache
