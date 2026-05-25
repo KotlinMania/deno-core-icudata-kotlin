@@ -898,3 +898,30 @@ afterEvaluate {
         )
     }
 }
+
+// Force-pin patched versions of Android Unified Test Platform (UTP) transitive
+// dependencies. The Android Multiplatform Library Gradle plugin pulls the UTP
+// runner classpath, which historically carries vulnerable older releases of
+// netty / bouncycastle / jose4j / jdom2 / httpclient / commons-lang3 /
+// opentelemetry-api. Each forced version is the `first_patched_version`
+// reported by the corresponding Dependabot alert on this repo.
+configurations.configureEach {
+    resolutionStrategy {
+        force(
+            "io.netty:netty-codec:4.1.133.Final",
+            "io.netty:netty-codec-http:4.1.133.Final",
+            "io.netty:netty-codec-http2:4.1.133.Final",
+            "io.netty:netty-common:4.1.133.Final",
+            "io.netty:netty-handler:4.1.133.Final",
+            "io.netty:netty-handler-proxy:4.1.133.Final",
+            "org.bouncycastle:bcpg-jdk18on:1.84",
+            "org.bouncycastle:bcprov-jdk18on:1.84",
+            "org.bouncycastle:bcpkix-jdk18on:1.84",
+            "org.bitbucket.b_c:jose4j:0.9.6",
+            "org.jdom:jdom2:2.0.6.1",
+            "org.apache.httpcomponents:httpclient:4.5.13",
+            "org.apache.commons:commons-lang3:3.18.0",
+            "io.opentelemetry:opentelemetry-api:1.62.0",
+        )
+    }
+}
