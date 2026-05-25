@@ -29,7 +29,7 @@ plugins {
 }
 
 group = "io.github.kotlinmania"
-version = "0.1.1"
+version = "0.1.2"
 
 val androidCommandLineToolsRevision = "14742923"
 val projectCompileSdk = "34"
@@ -355,7 +355,7 @@ val generateIcuData = tasks.register("generateIcuData") {
         val base64 = JavaBase64.getEncoder()
 
         val sb = StringBuilder()
-        sb.append("// port-lint: ignore — build-generated base64 chunks of src/commonMain/data/icudtl.dat\n")
+        sb.append("// Generated from src/commonMain/data/icudtl.dat; do not edit.\n")
         sb.append("package io.github.kotlinmania.denocoreicudata\n\n")
         sb.append("internal const val ICU_DATA_TOTAL_BYTES: Int = ${bytes.size}\n\n")
         sb.append("internal val ICU_DATA_CHUNKS: List<String> = listOf(\n")
@@ -374,6 +374,10 @@ val generateIcuData = tasks.register("generateIcuData") {
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    dependsOn(generateIcuData)
+}
+
+tasks.matching { it.name.endsWith("SourcesJar") }.configureEach {
     dependsOn(generateIcuData)
 }
 
@@ -694,6 +698,51 @@ tasks.matching { it.name == "embedSwiftExportForXcode" }.configureEach {
     }
 }
 
+val isMacHost = System.getProperty("os.name").lowercase().contains("mac")
+val swiftExportTestEnvironment = mapOf(
+    "BUILT_PRODUCTS_DIR" to layout.buildDirectory.dir("swift-test").get().asFile.absolutePath,
+    "TARGET_BUILD_DIR" to layout.buildDirectory.dir("swift-test").get().asFile.absolutePath,
+    "SDK_NAME" to "macosx",
+    "CONFIGURATION" to "Debug",
+    "ARCHS" to "arm64",
+    "FRAMEWORKS_FOLDER_PATH" to "Frameworks",
+    "MACOSX_DEPLOYMENT_TARGET" to "14.0",
+    "DEPLOYMENT_TARGET_SETTING_NAME" to "MACOSX_DEPLOYMENT_TARGET",
+)
+
+val buildSwiftExportForSwiftTest = tasks.register<Exec>("buildSwiftExportForSwiftTest") {
+    group = "verification"
+    description = "Builds the Kotlin Swift Export package for the local Swift test harness."
+    onlyIf("Swift Export local test requires macOS") { isMacHost }
+    commandLine(
+        layout.projectDirectory.file("gradlew").asFile.absolutePath,
+        "--no-daemon",
+        "--console=plain",
+        "--no-configuration-cache",
+        "embedSwiftExportForXcode",
+    )
+    environment(swiftExportTestEnvironment)
+    outputs.dir(layout.buildDirectory.dir("swift-test"))
+    outputs.dir(layout.buildDirectory.dir("SPMPackage/macosArm64/Debug"))
+    outputs.upToDateWhen { false }
+}
+
+val swiftExportTest = tasks.register<Exec>("swiftExportTest") {
+    group = "verification"
+    description = "Runs swift test against the Kotlin Swift Export package."
+    onlyIf("swift test local gate requires macOS") { isMacHost }
+    dependsOn(buildSwiftExportForSwiftTest)
+    workingDir(layout.projectDirectory.dir("swift-test-harness"))
+    commandLine("swift", "test")
+    outputs.upToDateWhen { false }
+}
+
+if (isMacHost) {
+    tasks.named("test") {
+        dependsOn(swiftExportTest)
+    }
+}
+
 val fullTargetBuildTasks = listOf(
     "compileAndroidMain",
     "compileAndroidHostTest",
@@ -825,6 +874,9 @@ val fullTargetBuildTasks = listOf(
 
 tasks.named("build") {
     dependsOn(fullTargetBuildTasks)
+    if (isMacHost) {
+        dependsOn(swiftExportTest)
+    }
 }
 
 afterEvaluate {
