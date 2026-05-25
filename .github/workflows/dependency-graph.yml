@@ -1,0 +1,45 @@
+name: "Refresh Dependency Graph"
+
+# Manual-only. Submits a fresh Gradle dependency snapshot to GitHub via the
+# Dependency Submission API. The submitted snapshot supersedes any prior
+# graph entries under the same correlator, which lets Dependabot re-evaluate
+# alerts against the actual current build instead of historical residue.
+#
+# Why this exists: at some point in this repo's history the dependency graph
+# accumulated transitive entries (netty, bouncycastle, jose4j, jdom2,
+# httpclient, commons-lang3, opentelemetry-api, grpc-netty) that the current
+# build does not pull in (verified against `./gradlew buildEnvironment` and
+# the canonical http-kotlin / anstyle-kotlin settings.gradle.kts which have
+# identical content and zero alerts). The stale entries fired ~30 Dependabot
+# alerts. Running this workflow once replaces the stale snapshot with an
+# accurate one.
+#
+# Trigger: workflow_dispatch only (no push / pull_request / schedule),
+# consistent with the workspace's manual-only CI policy.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    name: "Submit Gradle dependency graph"
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Set up JDK 21"
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "zulu"
+
+      - name: "Install project-local Android SDK"
+        run: ./gradlew setupAndroidSdk --no-configuration-cache
+
+      - name: "Submit Gradle dependency snapshot"
+        uses: gradle/actions/dependency-submission@v4
+        with:
+          dependency-graph: generate-and-submit
