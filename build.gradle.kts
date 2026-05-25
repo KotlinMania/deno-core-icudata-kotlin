@@ -240,11 +240,6 @@ kotlin {
         binaries.framework { baseName = "DenoCoreIcudata"; xcf.add(this) }
     }
 
-    watchosArm32 {
-        // Keep the 32-bit target compile-only: linking the 10.8 MB ICU blob
-        // into a watchOS ARM32 framework exceeds Mach-O scattered relocation
-        // encoding, while the Kotlin target metadata remains publishable.
-    }
     watchosArm64 {
         binaries.framework { baseName = "DenoCoreIcudata"; xcf.add(this) }
     }
@@ -801,7 +796,6 @@ val fullTargetBuildTasks = listOf(
     "tvosArm64TestBinaries",
     "tvosSimulatorArm64Binaries",
     "tvosSimulatorArm64TestBinaries",
-    "compileKotlinWatchosArm32",
     "watchosArm64Binaries",
     "watchosArm64TestBinaries",
     "watchosDeviceArm64Binaries",
@@ -841,7 +835,6 @@ val fullTargetBuildTasks = listOf(
     "exportCrossCompilationMetadataForMingwX64ApiElements",
     "exportCrossCompilationMetadataForTvosArm64ApiElements",
     "exportCrossCompilationMetadataForTvosSimulatorArm64ApiElements",
-    "exportCrossCompilationMetadataForWatchosArm32ApiElements",
     "exportCrossCompilationMetadataForWatchosArm64ApiElements",
     "exportCrossCompilationMetadataForWatchosDeviceArm64ApiElements",
     "exportCrossCompilationMetadataForWatchosSimulatorArm64ApiElements",
@@ -868,7 +861,6 @@ val fullTargetBuildTasks = listOf(
     "exportTargetPublicationCoordinatesForWasmJsRuntimeElements",
     "exportTargetPublicationCoordinatesForWasmWasiApiElements",
     "exportTargetPublicationCoordinatesForWasmWasiRuntimeElements",
-    "exportTargetPublicationCoordinatesForWatchosArm32ApiElements",
     "exportTargetPublicationCoordinatesForWatchosArm64ApiElements",
     "exportTargetPublicationCoordinatesForWatchosDeviceArm64ApiElements",
     "exportTargetPublicationCoordinatesForWatchosSimulatorArm64ApiElements",
