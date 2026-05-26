@@ -900,12 +900,12 @@ afterEvaluate {
 configurations.configureEach {
     resolutionStrategy {
         force(
-            "io.netty:netty-codec:4.1.133.Final",
-            "io.netty:netty-codec-http:4.1.133.Final",
-            "io.netty:netty-codec-http2:4.1.133.Final",
-            "io.netty:netty-common:4.1.133.Final",
-            "io.netty:netty-handler:4.1.133.Final",
-            "io.netty:netty-handler-proxy:4.1.133.Final",
+            "io.netty:netty-codec:4.2.14.Final",
+            "io.netty:netty-codec-http:4.2.14.Final",
+            "io.netty:netty-codec-http2:4.2.14.Final",
+            "io.netty:netty-common:4.2.14.Final",
+            "io.netty:netty-handler:4.2.14.Final",
+            "io.netty:netty-handler-proxy:4.2.14.Final",
             "org.bouncycastle:bcpg-jdk18on:1.84",
             "org.bouncycastle:bcprov-jdk18on:1.84",
             "org.bouncycastle:bcpkix-jdk18on:1.84",
