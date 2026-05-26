@@ -1,4 +1,3 @@
-// port-lint: ignore — verifies the embedded ICU_DATA round-trips the upstream tmp/deno_core_icudata/src/icudtl.dat blob.
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.test.Test
