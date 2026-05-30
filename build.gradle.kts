@@ -911,7 +911,7 @@ configurations.configureEach {
             "org.bouncycastle:bcpkix-jdk18on:1.84",
             "org.bitbucket.b_c:jose4j:0.9.6",
             "org.jdom:jdom2:2.0.6.1",
-            "org.apache.httpcomponents:httpclient:4.5.13",
+            "org.apache.httpcomponents:httpclient:4.5.14",
             "org.apache.commons:commons-lang3:3.20.0",
             "io.opentelemetry:opentelemetry-api:1.62.0",
         )
