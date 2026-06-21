@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class IcuDataTest {
-
     @Test
     fun matchesUpstreamLength() {
         assertEquals(10_822_192, ICU_DATA.size)
