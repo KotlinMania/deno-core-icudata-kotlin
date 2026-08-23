@@ -171,6 +171,16 @@ fun registerCodeqlCompileTask(
                     .joinToString(File.pathSeparator) { it.absolutePath }
             val commonSourceFiles = commonSources.files.toMutableList()
             val sourceFiles = sources.files.toMutableList()
+            val generatedIcuDataFile = dummySourceDir.get().file("io/github/kotlinmania/denocoreicudata/IcuDataChunks.kt").asFile
+            generatedIcuDataFile.parentFile.mkdirs()
+            generatedIcuDataFile.writeText(
+                "package io.github.kotlinmania.denocoreicudata\n\n" +
+                    "internal const val ICU_DATA_TOTAL_BYTES: Int = 0\n" +
+                    "internal val ICU_DATA_CHUNKS: List<String> = emptyList()\n",
+            )
+            commonSourceFiles.add(generatedIcuDataFile)
+            sourceFiles.add(generatedIcuDataFile)
+
             // If no real sources were found, use the dummy source generated in onlyIf.
             if (commonSourceFiles.isEmpty()) {
                 commonSourceFiles.add(dummySourceFile.get().asFile)

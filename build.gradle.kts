@@ -551,50 +551,55 @@ if (benchmarkEnabled) {
 val icuDataInputFile = layout.projectDirectory.file("src/commonMain/data/icudtl.dat").asFile
 val icuDataGeneratedDir = layout.buildDirectory.dir("generated/icudata/commonMain/kotlin")
 
-val generateIcuData = tasks.register("generateIcuData") {
-    group = "build"
-    description = "Embed src/commonMain/data/icudtl.dat as base64 chunks in a generated Kotlin source file."
-    inputs.file(icuDataInputFile).withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE)
-    outputs.dir(icuDataGeneratedDir)
+val generateIcuData =
+    tasks.register("generateIcuData") {
+        group = "build"
+        description = "Embed src/commonMain/data/icudtl.dat as base64 chunks in a generated Kotlin source file."
+        inputs.file(icuDataInputFile).withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE)
+        outputs.dir(icuDataGeneratedDir)
 
-    doLast {
-        if (!icuDataInputFile.exists()) {
-            throw GradleException(
-                "Required vendored data file not found: $icuDataInputFile. " +
-                    "The file is committed alongside source; restore it from upstream " +
-                    "(deno_core_icudata::src/icudtl.dat) if it has been deleted.",
-            )
+        doLast {
+            if (!icuDataInputFile.exists()) {
+                throw GradleException(
+                    "Required vendored data file not found: $icuDataInputFile. " +
+                        "The file is committed alongside source; restore it from upstream " +
+                        "(deno_core_icudata::src/icudtl.dat) if it has been deleted.",
+                )
+            }
+
+            val rootDir = icuDataGeneratedDir.get().asFile
+            val packageDir = rootDir.resolve("io/github/kotlinmania/denocoreicudata")
+            rootDir.deleteRecursively()
+            packageDir.mkdirs()
+
+            val bytes = icuDataInputFile.readBytes()
+            val chunkSize = 32 * 1024
+            val base64 = Base64.getEncoder()
+
+            val sb = StringBuilder()
+            sb.append("// Generated from src/commonMain/data/icudtl.dat; do not edit.\n")
+            sb.append("package io.github.kotlinmania.denocoreicudata\n\n")
+            sb.append("internal const val ICU_DATA_TOTAL_BYTES: Int = ${bytes.size}\n\n")
+            sb.append("internal val ICU_DATA_CHUNKS: List<String> =\n")
+            sb.append("    listOf(\n")
+            var offset = 0
+            while (offset < bytes.size) {
+                val end = minOf(offset + chunkSize, bytes.size)
+                sb.append("        \"")
+                sb.append(base64.encodeToString(bytes.copyOfRange(offset, end)))
+                sb.append("\",\n")
+                offset = end
+            }
+            sb.append("    )\n")
+
+            packageDir.resolve("IcuDataChunks.kt").writeText(sb.toString())
         }
-
-        val rootDir = icuDataGeneratedDir.get().asFile
-        val packageDir = rootDir.resolve("io/github/kotlinmania/denocoreicudata")
-        rootDir.deleteRecursively()
-        packageDir.mkdirs()
-
-        val bytes = icuDataInputFile.readBytes()
-        val chunkSize = 32 * 1024
-        val base64 = Base64.getEncoder()
-
-        val sb = StringBuilder()
-        sb.append("// Generated from src/commonMain/data/icudtl.dat; do not edit.\n")
-        sb.append("package io.github.kotlinmania.denocoreicudata\n\n")
-        sb.append("internal const val ICU_DATA_TOTAL_BYTES: Int = ${bytes.size}\n\n")
-        sb.append("internal val ICU_DATA_CHUNKS: List<String> = listOf(\n")
-        var offset = 0
-        while (offset < bytes.size) {
-            val end = minOf(offset + chunkSize, bytes.size)
-            sb.append("    \"")
-            sb.append(base64.encodeToString(bytes.copyOfRange(offset, end)))
-            sb.append("\",\n")
-            offset = end
-        }
-        sb.append(")\n")
-
-        packageDir.resolve("IcuDataChunks.kt").writeText(sb.toString())
     }
-}
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    dependsOn(generateIcuData)
+}
+tasks.matching { it.name.contains("ktlint", ignoreCase = true) || it.name.contains("detekt", ignoreCase = true) }.configureEach {
     dependsOn(generateIcuData)
 }
 
