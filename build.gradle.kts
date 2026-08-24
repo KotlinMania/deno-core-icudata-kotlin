@@ -951,6 +951,27 @@ val publishToCentralPortal by tasks.registering {
 // Tasks
 // ============================================================================
 
+tasks.matching { it.name.contains("GenerateSPMPackage") }.configureEach {
+    doLast {
+        val packageSwift =
+            project.layout.buildDirectory
+                .file("SPMPackage/macosArm64/Debug/Package.swift")
+                .get()
+                .asFile
+        if (packageSwift.exists()) {
+            val text = packageSwift.readText()
+            if (!text.contains("platforms:")) {
+                packageSwift.writeText(
+                    text.replaceFirst(
+                        Regex("(let package = Package\\s*\\(\\s*name:\\s*\"[^\"]*\",)"),
+                        "$1\n    platforms: [.macOS(.v14)],",
+                    ),
+                )
+            }
+        }
+    }
+}
+
 // Exact test lifecycle task. Without this, ./gradlew test is ambiguous between
 // Android test task names. This runs commonTest through the KMP allTests
 // lifecycle and adds the Android host + Swift Export parity tests.
@@ -996,12 +1017,13 @@ tasks.register("swiftExportSmokeTest") {
 
     doLast {
         val execOperations = serviceOf<ExecOperations>()
-        val swiftBuildDir =
+        val swiftBuildDirFile =
             layout.buildDirectory
                 .dir("swift-test")
                 .get()
                 .asFile
-                .absolutePath
+        swiftBuildDirFile.deleteRecursively()
+        val swiftBuildDir = swiftBuildDirFile.absolutePath
         execOperations
             .exec {
                 workingDir = projectDir
@@ -1036,8 +1058,8 @@ tasks.register("swiftExportSmokeTest") {
             if (!text.contains("platforms:")) {
                 generatedPackageSwift.writeText(
                     text.replaceFirst(
-                        Regex("(name:\\s*\"[^\"]*\",)"),
-                        "\$1\n    platforms: [.macOS(.v14)],",
+                        Regex("(let package = Package\\s*\\(\\s*name:\\s*\"[^\"]*\",)"),
+                        "$1\n    platforms: [.macOS(.v14)],",
                     ),
                 )
             }

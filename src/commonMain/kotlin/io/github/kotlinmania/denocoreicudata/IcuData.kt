@@ -1,12 +1,14 @@
-// port-lint: source lib.rs
+// port-lint: source src/lib.rs
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.io.encoding.Base64
 
+/** Wrapper for ICU data payload. */
 private class IcuData<T>(
     val value: T,
 )
 
+/** Raw ICU data instance. */
 private val ICU_DATA_RAW: IcuData<ByteArray> =
     IcuData(
         run {
