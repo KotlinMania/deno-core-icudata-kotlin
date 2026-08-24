@@ -1,4 +1,4 @@
-// port-lint: source src/lib.rs
+// port-lint: source lib.rs
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.io.encoding.Base64
@@ -24,5 +24,5 @@ private val ICU_DATA_RAW: IcuData<ByteArray> =
     )
 
 /** Raw ICU data. */
-val ICU_DATA: ByteArray
+public val ICU_DATA: ByteArray
     get() = ICU_DATA_RAW.value.copyOf()
