@@ -511,42 +511,8 @@ kotlin {
     }
 }
 
-allOpen {
-    annotation("org.openjdk.jmh.annotations.State")
-    annotation("kotlinx.benchmark.State")
-}
-
-if (benchmarkEnabled) {
-    benchmark {
-        targets {
-            benchmarkTargetNames.forEach { targetName ->
-                register("${targetName}Benchmark")
-            }
-        }
-        configurations {
-            named("main") {
-                warmups = benchmarkWarmups
-                iterations = benchmarkIterations
-                iterationTime = benchmarkIterationTime
-                iterationTimeUnit = benchmarkIterationTimeUnit
-            }
-        }
-    }
-}
-
 // ============================================================================
 // ICU data embedding
-//
-// Upstream src/lib.rs uses include_bytes!("icudtl.dat") to splice the raw
-// ICU data into the compiled library at compile time. Kotlin has no
-// compile-time byte-splice macro and the binary is too large to write as a
-// byteArrayOf(...) literal, so we mirror the same semantics with a build-time
-// generator: it reads src/commonMain/data/icudtl.dat (vendored from the
-// upstream crate's src/icudtl.dat), splits the bytes into ASCII-base64 chunks
-// (each well under the 65535-byte Kotlin string literal limit), and emits the
-// chunks as a Kotlin source file under the commonMain source set. The
-// hand-written IcuData.kt then assembles the bytes into the public ICU_DATA:
-// ByteArray exposed by this port.
 // ============================================================================
 val icuDataInputFile = layout.projectDirectory.file("src/commonMain/data/icudtl.dat").asFile
 val icuDataGeneratedDir = layout.buildDirectory.dir("generated/icudata/commonMain/kotlin")
@@ -601,6 +567,29 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().con
 }
 tasks.matching { it.name.contains("ktlint", ignoreCase = true) || it.name.contains("detekt", ignoreCase = true) }.configureEach {
     dependsOn(generateIcuData)
+}
+
+allOpen {
+    annotation("org.openjdk.jmh.annotations.State")
+    annotation("kotlinx.benchmark.State")
+}
+
+if (benchmarkEnabled) {
+    benchmark {
+        targets {
+            benchmarkTargetNames.forEach { targetName ->
+                register("${targetName}Benchmark")
+            }
+        }
+        configurations {
+            named("main") {
+                warmups = benchmarkWarmups
+                iterations = benchmarkIterations
+                iterationTime = benchmarkIterationTime
+                iterationTimeUnit = benchmarkIterationTimeUnit
+            }
+        }
+    }
 }
 
 // ============================================================================
@@ -951,27 +940,6 @@ val publishToCentralPortal by tasks.registering {
 // Tasks
 // ============================================================================
 
-tasks.matching { it.name.contains("GenerateSPMPackage") }.configureEach {
-    doLast {
-        val packageSwift =
-            project.layout.buildDirectory
-                .file("SPMPackage/macosArm64/Debug/Package.swift")
-                .get()
-                .asFile
-        if (packageSwift.exists()) {
-            val text = packageSwift.readText()
-            if (!text.contains("platforms:")) {
-                packageSwift.writeText(
-                    text.replaceFirst(
-                        Regex("(let package = Package\\s*\\(\\s*name:\\s*\"[^\"]*\",)"),
-                        "$1\n    platforms: [.macOS(.v14)],",
-                    ),
-                )
-            }
-        }
-    }
-}
-
 // Exact test lifecycle task. Without this, ./gradlew test is ambiguous between
 // Android test task names. This runs commonTest through the KMP allTests
 // lifecycle and adds the Android host + Swift Export parity tests.
@@ -1004,6 +972,26 @@ tasks.register("hostTests") {
     )
 }
 
+// Patch generated SPM Package.swift to include minimum macOS platform for Swift Concurrency
+tasks.matching { it.name.contains("GenerateSPMPackage") }.configureEach {
+    doLast {
+        val spmDir = layout.buildDirectory.dir("SPMPackage").orNull?.asFile
+        if (spmDir != null && spmDir.exists()) {
+            spmDir.walkTopDown().filter { it.name == "Package.swift" }.forEach { file ->
+                val text = file.readText()
+                if (!text.contains("platforms:")) {
+                    file.writeText(
+                        text.replaceFirst(
+                            Regex("""(let package = Package\s*\(\s*name:\s*"[^"]*",)"""),
+                            "$1\n    platforms: [.macOS(.v14)],",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
 // Swift Export smoke test — produces the SPM package via embedSwiftExportForXcode
 // (spawned with the Xcode-style env it requires) and runs `swift test` against it,
 // so Swift Export breakage surfaces locally, not only in the swift.yml CI job.
@@ -1016,13 +1004,12 @@ tasks.register("swiftExportSmokeTest") {
 
     doLast {
         val execOperations = serviceOf<ExecOperations>()
-        val swiftBuildDirFile =
+        val swiftBuildDir =
             layout.buildDirectory
                 .dir("swift-test")
                 .get()
                 .asFile
-        swiftBuildDirFile.deleteRecursively()
-        val swiftBuildDir = swiftBuildDirFile.absolutePath
+                .absolutePath
         execOperations
             .exec {
                 workingDir = projectDir
@@ -1046,23 +1033,6 @@ tasks.register("swiftExportSmokeTest") {
                     ),
                 )
             }.assertNormalExitValue()
-
-        val generatedPackageSwift =
-            layout.buildDirectory
-                .file("SPMPackage/macosArm64/Debug/Package.swift")
-                .get()
-                .asFile
-        if (generatedPackageSwift.exists()) {
-            val text = generatedPackageSwift.readText()
-            if (!text.contains("platforms:")) {
-                generatedPackageSwift.writeText(
-                    text.replaceFirst(
-                        Regex("(let package = Package\\s*\\(\\s*name:\\s*\"[^\"]*\",)"),
-                        "$1\n    platforms: [.macOS(.v14)],",
-                    ),
-                )
-            }
-        }
 
         execOperations
             .exec {
