@@ -1,4 +1,3 @@
-// port-lint: tests lib.rs
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.test.Test
