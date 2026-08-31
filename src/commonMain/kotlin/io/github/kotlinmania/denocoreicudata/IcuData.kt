@@ -1,4 +1,4 @@
-// port-lint: source lib.rs
+// port-lint: source deno_core_icudata/src/lib.rs
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.io.encoding.Base64
