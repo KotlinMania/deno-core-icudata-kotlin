@@ -1,4 +1,4 @@
-// port-lint: tests deno_core_icudata/src/lib.rs
+// port-lint: tests lib.rs
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.test.Test
