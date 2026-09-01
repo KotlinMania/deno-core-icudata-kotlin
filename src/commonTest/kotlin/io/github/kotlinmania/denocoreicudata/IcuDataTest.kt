@@ -1,4 +1,4 @@
-// port-lint: tests lib.rs
+// port-lint: tests src/lib.rs
 package io.github.kotlinmania.denocoreicudata
 
 import kotlin.test.Test
@@ -29,5 +29,12 @@ class IcuDataTest {
         data[0] = 0
 
         assertEquals(firstByte, ICU_DATA[0])
+    }
+
+    @Test
+    fun wrapsCustomPayload() {
+        val payload = "payload"
+        val wrapped = IcuData(payload)
+        assertEquals(payload, wrapped.value)
     }
 }
