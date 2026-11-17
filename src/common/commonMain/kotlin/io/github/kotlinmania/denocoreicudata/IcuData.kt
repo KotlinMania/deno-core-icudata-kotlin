@@ -3,8 +3,8 @@ package io.github.kotlinmania.denocoreicudata
 import kotlin.io.encoding.Base64
 
 /** Wrapper for ICU data payload. */
-public data class IcuData<T>(
-    public val value: T,
+internal data class IcuData<T>(
+    internal val value: T,
 )
 
 /** Raw ICU data instance. */
